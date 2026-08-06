@@ -27,7 +27,8 @@
       {
         "provider": "github",
         "owner": "bellv2",
-        "repo": "aether-releases"
+        "repo": "aether-releases",
+        "releaseType": "release"
       }
     ],
     "linux": {
