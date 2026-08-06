@@ -222,6 +222,11 @@ body{background:#000;color:var(--ink);font-family:var(--body);font-size:14px;ove
 @keyframes tmshimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .tmEmpty{padding:14px;color:var(--ink-2);font-size:12.5px;line-height:1.6}
 
+
+/* ══════ CRONÓMETRO RÁPIDO (dashboard) ══════ */
+.qtRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.qtDisp{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:.03em;color:var(--cyan);min-width:118px}
+
 /* ══════ NOW PLAYING ══════ */
 /* [hidden] must beat display:flex — this is what made both states show at once */
 .np-off[hidden],.np-on[hidden],[hidden]{display:none!important}
@@ -325,10 +330,6 @@ body.dblive .vinyl-spin{animation-play-state:running}
 .p:has(.st){transition:background .25s,transform .25s}
 .p:has(.st):hover{transform:translateY(-2px)}
 
-.playbtn{width:60px;height:60px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:var(--cyan);color:#000;transition:transform .18s,background .18s;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.playbtn:hover{transform:scale(1.06);background:var(--gold-hi)}
-.playbtn:disabled{opacity:.45;transform:none;cursor:default}
 
 
 /* ══════ CLARITY + WARMTH PASS ══════ */
@@ -585,22 +586,6 @@ body.dblive .vinyl-spin{animation-play-state:running}
 .wlbar i{display:block;height:100%;background:currentColor;width:0;transition:width .9s cubic-bezier(.3,0,.4,1);border-radius:3px}
 
 /* ══ focus mode ══ */
-.focus{position:fixed;inset:0;z-index:940;display:none;flex-direction:column;align-items:center;justify-content:center;
-  background:linear-gradient(180deg,#1f1f1f,#000)}
-.focus.on{display:flex;animation:cmdIn .4s ease}
-.focus .fx2{display:none}
-.focus .ftask{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);margin-bottom:16px;font-weight:700}
-.focus h2{font-family:var(--dsp);font-weight:800;font-size:32px;margin-bottom:40px;text-align:center;max-width:620px;padding:0 20px;letter-spacing:-.03em}
-.fring{position:relative;width:260px;height:260px;flex:0 0 auto;margin-bottom:34px}
-.fring svg{width:260px;height:260px;display:block;transform:rotate(-90deg)}
-.fring svg circle:first-child{stroke:#4d4d4d}
-.fring svg circle:last-of-type{stroke:var(--cyan);filter:none}
-.ftime{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ftime .tt{font-family:var(--dsp);font-weight:800;font-size:54px;letter-spacing:-.04em;color:var(--ink)}
-.ftime .tp{font-size:11px;letter-spacing:.08em;color:var(--cyan);margin-top:8px;font-weight:700;text-transform:uppercase}
-.facts{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-.fnote{position:absolute;bottom:32px;font-size:12px;color:var(--ink-3);text-align:center;padding:0 20px;line-height:1.7;font-weight:500}
-
 /* ══ timeline ══ */
 .tl{position:relative;padding-left:26px}
 .tl::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:2px;background:var(--panel-3);border-radius:2px}
@@ -890,8 +875,19 @@ body.dblive .vinyl-spin{animation-play-state:running}
           <button class="qb" data-qa="record"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="6" y="2.5" width="4" height="7" rx="2"/><path d="M4 8a4 4 0 0 0 8 0M8 12v1.5"/></svg>Ir a grabar</button>
           <button class="qb" data-qa="ask"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.6"/><path d="M6.4 6.4a1.7 1.7 0 1 1 1.9 2.2v1"/><circle cx="8" cy="11.4" r=".55" fill="currentColor" stroke="none"/></svg>Preguntar<span class="kb">⌘K</span></button>
           <button class="qb" data-qa="guide"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3h4.5c.8 0 1.5.7 1.5 1.5V13c0-.8-.7-1.5-1.5-1.5H3z"/><path d="M13 3H8.5C7.7 3 7 3.7 7 4.5V13c0-.8.7-1.5 1.5-1.5H13z"/></svg>Ver guías</button>
-          <button class="qb" data-qa="focus"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.6"/><circle cx="8" cy="8" r="2.2"/></svg>Modo enfoque</button>
           <button class="qb" data-qa="capture"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 3.5v9M3.5 8h9"/></svg>Captura</button>
+        </div>
+
+        <div class="p" style="margin-bottom:11px">
+          <div class="ph"><h3>Cronómetro rápido</h3><span class="r" id="qtLive" style="display:none">CONTANDO</span></div>
+          <div class="pc" id="quickTimerBody">
+            <div class="qtRow">
+              <div class="qtDisp" id="qtdisp">00:00:00</div>
+              <select id="qtcourse" class="fld" style="max-width:220px;flex:1;min-width:160px"></select>
+              <button class="btn s" id="qtstart">Iniciar</button>
+              <button class="btn g" id="qtstop" disabled>Detener</button>
+            </div>
+          </div>
         </div>
 
         <div class="grid g4" style="margin-bottom:11px">
@@ -1175,12 +1171,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
           <div class="pc">
             <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
               <div style="font-family:var(--dsp);font-size:36px;font-weight:700;letter-spacing:.04em;color:var(--cyan);min-width:150px" id="tdisp">00:00:00</div>
-              <select id="tcourse" class="fld" style="max-width:230px">
-                <option>Cálculo en Varias Variables</option><option>Fundamentos de Finanzas</option>
-                <option>Razonamiento Algorítmico</option><option>Proceso Contable</option>
-                <option>Seminario de Microeconomía Aplicada</option><option>Principios de Macroeconomía</option>
-                <option>Problemas de la Civilización Contemporánea II</option>
-              </select>
+              <select id="tcourse" class="fld" style="max-width:230px"></select>
               <button class="btn s" id="tstart">Iniciar sesión</button>
               <button class="btn g" id="tstop" disabled>Detener y guardar</button>
             </div>
@@ -1232,25 +1223,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
   </div>
 </div>
 
-<div class="focus" id="focus" role="dialog" aria-modal="true" aria-label="Modo enfoque">
-  <div class="fx2"></div>
-  <div class="ftask" id="ftask">TAREA ACTUAL</div>
-  <h2 id="ftitle">Problemario 6 · Proceso Contable</h2>
-  <div class="fring">
-    <svg viewBox="0 0 250 250">
-      <circle cx="125" cy="125" r="112" fill="none" stroke="rgba(148,163,184,.12)" stroke-width="4"/>
-      <circle cx="125" cy="125" r="112" fill="none" stroke="var(--cyan)" stroke-width="4" stroke-linecap="round"
-        stroke-dasharray="704" stroke-dashoffset="704" id="fprog" style="filter:drop-shadow(0 0 6px var(--cyan));transition:stroke-dashoffset .5s linear"/>
-    </svg>
-    <div class="ftime"><div class="tt" id="ftime">25:00</div><div class="tp" id="fphase">LISTO PARA EMPEZAR</div></div>
-  </div>
-  <div class="facts">
-    <button class="btn s playbtn" id="fstart" aria-label="Empezar sesión de enfoque"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
-    <button class="btn g" id="fpause" disabled>Pausar</button>
-    <button class="btn g" id="fexit">Salir</button>
-  </div>
-  <div class="fnote">El tiempo que corra aquí se guarda como sesión real en Analítica.<br>Nada más se registra por su cuenta.</div>
-</div>
+
 
 <div class="cmdk" id="ytmodal" role="dialog" aria-modal="true" aria-label="Conectar YouTube">
   <div class="cmdbox" style="max-width:440px">
@@ -1672,20 +1645,76 @@ body.dblive .vinyl-spin{animation-play-state:running}
   drawSessions(); drawInsights();
 
   var tD=document.getElementById('tdisp'), tS=document.getElementById('tstart'), tX=document.getElementById('tstop'), tL=document.getElementById('timerLive');
-  if(tS){
-    tS.addEventListener('click',function(){
-      if(tRun)return;
-      tRun=true; tStart=Date.now(); tS.disabled=true; tX.disabled=false; tL.style.display='flex';
-      tTick=setInterval(function(){tD.textContent=fmt(Date.now()-tStart)},250);
-    });
-    tX.addEventListener('click',function(){
-      if(!tRun)return;
-      clearInterval(tTick); tRun=false; tS.disabled=false; tX.disabled=true; tL.style.display='none';
-      var ms=Date.now()-tStart;
-      if(ms>3000){ var _c=document.getElementById('tcourse').value; sessions.push({c:_c,ms:ms,at:new Date()}); saveSessionToDb(_c, ms); }
-      tD.textContent='00:00:00'; drawSessions(); if(window.__tl)window.__tl();
-    });
+  var qD=document.getElementById('qtdisp'), qS=document.getElementById('qtstart'), qX=document.getElementById('qtstop'), qL=document.getElementById('qtLive');
+  var tCourse = null; // la materia se fija al INICIAR, no al detener — así cambiar el select a medio estudio no le roba tiempo a otra materia
+
+  function timerSyncUI(){
+    var disp = tRun ? fmt(Date.now()-tStart) : '00:00:00';
+    if(tD) tD.textContent = disp;
+    if(qD) qD.textContent = disp;
+    [tS,qS].forEach(function(b){ if(b) b.disabled = tRun; });
+    [tX,qX].forEach(function(b){ if(b) b.disabled = !tRun; });
+    if(tL) tL.style.display = tRun ? 'flex' : 'none';
+    if(qL) qL.style.display = tRun ? 'flex' : 'none';
   }
+
+  function timerStart(courseName){
+    if(tRun) return;
+    tCourse = courseName;
+    tRun = true; tStart = Date.now();
+    timerSyncUI();
+    tTick = setInterval(timerSyncUI, 250);
+  }
+
+  async function timerStop(){
+    if(!tRun) return;
+    clearInterval(tTick);
+    tRun = false;
+    var ms = Date.now() - tStart;
+    var course = tCourse; tCourse = null;
+    timerSyncUI();
+    if(ms > 3000){
+      sessions.push({c:course, ms:ms, at:new Date()});
+      await saveSessionToDb(course, ms);
+      drawSessions();
+      if(window.__tl) window.__tl();
+      if(typeof renderRecent === 'function') renderRecent();
+    }
+  }
+
+  async function populateCourseSelects(){
+    var sels = [document.getElementById('tcourse'), document.getElementById('qtcourse')].filter(Boolean);
+    if(!sels.length) return;
+    if(!DB.connected()){
+      sels.forEach(function(sel){ sel.innerHTML = '<option value="">conéctate para ver tus materias</option>'; });
+      return;
+    }
+    try{
+      var courses = await DB.run('SELECT name FROM courses ORDER BY name');
+      if(!courses.length){
+        sels.forEach(function(sel){ sel.innerHTML = '<option value="">sin materias todavía</option>'; });
+        return;
+      }
+      var optsHtml = courses.map(function(c){
+        var esc = String(c.name).replace(/[<>&"]/g, function(ch){ return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[ch]; });
+        return '<option value="'+esc+'">'+esc+'</option>';
+      }).join('');
+      sels.forEach(function(sel){
+        var prev = sel.value;
+        sel.innerHTML = optsHtml;
+        if(prev && [...sel.options].some(function(o){return o.value===prev})) sel.value = prev;
+      });
+    }catch(e){
+      console.warn('no se pudieron cargar las materias del cronómetro:', e.message);
+      sels.forEach(function(sel){ sel.innerHTML = '<option value="">no se pudo leer tus materias</option>'; });
+    }
+  }
+
+  if(tS) tS.addEventListener('click', function(){ var v=document.getElementById('tcourse').value; if(v) timerStart(v); });
+  if(tX) tX.addEventListener('click', timerStop);
+  if(qS) qS.addEventListener('click', function(){ var v=document.getElementById('qtcourse').value; if(v) timerStart(v); });
+  if(qX) qX.addEventListener('click', timerStop);
+
 
 
 
@@ -1817,7 +1846,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
       renderDashboard();
       paintCourseHeader(); paintCourseTabs();
       renderVerify(); renderLectures(); renderGraph(); renderGuides(); renderCalendar();
-      renderGrades(); renderRecent(); renderDashGraph(); renderSystemStatus(); renderTemas(); renderNotas(); renderLecturas();
+      renderGrades(); renderRecent(); renderDashGraph(); renderSystemStatus(); renderTemas(); renderNotas(); renderLecturas(); populateCourseSelects();
       console.log('cargado desde la base:', courses.length, 'materias,', asg.length, 'tareas');
     } catch(e){
       console.warn('no se pudo cargar de la base:', e.message);
@@ -1826,7 +1855,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
   }
   if(DB.connected()) loadFromDb();
   else { renderVerify(); renderLectures(); renderGraph(); renderGuides(); renderCalendar(); paintCourseHeader(); paintCourseTabs(); runSearch();
-    renderGrades(); renderRecent(); renderDashGraph(); renderSystemStatus(); renderTemas(); renderNotas(); renderLecturas(); }
+    renderGrades(); renderRecent(); renderDashGraph(); renderSystemStatus(); renderTemas(); renderNotas(); renderLecturas(); populateCourseSelects(); }
 
   // ══════ PANEL PRINCIPAL — datos reales, o un vacío honesto ══════
   function daysUntil(dateStr){
@@ -3319,56 +3348,9 @@ body.dblive .vinyl-spin{animation-play-state:running}
   });
   cmdk.addEventListener('click',function(e){ if(e.target===cmdk) closeCmd(); });
 
-  // ══════ MODO ENFOQUE ══════
-  var fo=document.getElementById('focus'), fCourse='', fDur=25*60, fLeft=fDur, fRun=false, fInt=null, fStartAt=0, fAccum=0;
-  var fTime=document.getElementById('ftime'), fPhase=document.getElementById('fphase'), fProg=document.getElementById('fprog');
-  function fPaint(){
-    var m=Math.floor(fLeft/60), sec=fLeft%60;
-    fTime.textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
-    fProg.style.strokeDashoffset=704*(fLeft/fDur);
-  }
-  function openFocus(){
-    var next=work.filter(function(w){return (w[4]||'').toLowerCase().indexOf('hoy')>-1})[0]||work[0];
-    fCourse=next[1];
-    document.getElementById('ftitle').textContent=next[0]+' · '+next[1];
-    fo.classList.add('on'); fPaint();
-  }
-  function closeFocus(){
-    if(fRun){ fAccum+=Date.now()-fStartAt; clearInterval(fInt); fRun=false; }
-    if(fAccum>3000){
-      sessions.push({c:fCourse||'Sin materia',ms:fAccum,at:new Date()});
-      saveSessionToDb(fCourse||'Sin materia', fAccum);
-      drawSessions();
-    }
-    fAccum=0; fLeft=fDur; fRun=false; clearInterval(fInt);
-    document.getElementById('fstart').disabled=false; document.getElementById('fpause').disabled=true;
-    fPhase.textContent='LISTO PARA EMPEZAR'; fPaint();
-    fo.classList.remove('on');
-  }
-  document.getElementById('fstart').addEventListener('click',function(){
-    if(fRun)return;
-    fRun=true; fStartAt=Date.now();
-    this.disabled=true; document.getElementById('fpause').disabled=false;
-    fPhase.textContent='CONCENTRADO';
-    fInt=setInterval(function(){
-      fLeft--; fPaint();
-      if(fLeft<=0){ clearInterval(fInt); fRun=false; fAccum+=Date.now()-fStartAt;
-        fPhase.textContent='TERMINADO · TOMA UN DESCANSO';
-        document.getElementById('fstart').disabled=false; document.getElementById('fpause').disabled=true;
-        fLeft=fDur; }
-    },1000);
-  });
-  document.getElementById('fpause').addEventListener('click',function(){
-    if(!fRun)return;
-    fRun=false; fAccum+=Date.now()-fStartAt; clearInterval(fInt);
-    this.disabled=true; document.getElementById('fstart').disabled=false;
-    fPhase.textContent='EN PAUSA';
-  });
-  document.getElementById('fexit').addEventListener('click',closeFocus);
-
   // ══════ QUICK ACTIONS ══════
   var QAMAP={upload:function(){go('guides')},record:function(){go('lectures')},ask:openCmd,
-             guide:function(){go('guides')},focus:openFocus,capture:function(){go('manual')}};
+             guide:function(){go('guides')},capture:function(){go('manual')}};
   document.querySelectorAll('[data-qa]').forEach(function(b){
     b.addEventListener('click',function(){ (QAMAP[b.dataset.qa]||function(){})(); });
   });
@@ -3376,7 +3358,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
   // ══════ ATAJOS DE TECLADO ══════
   document.addEventListener('keydown',function(e){
     if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
-    if(e.key==='Escape'){ if(cmdk.classList.contains('on'))closeCmd(); else if(fo.classList.contains('on'))closeFocus(); }
+    if(e.key==='Escape'){ if(cmdk.classList.contains('on'))closeCmd(); }
     // deliberately no bare-letter shortcuts: too easy to trigger by accident while reading.
   });
 
