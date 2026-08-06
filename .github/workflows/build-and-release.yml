@@ -1,0 +1,74 @@
+name: Build & Release AETHER
+
+# Se dispara cuando publicas un release con un tag como v1.0.3 — la misma
+# pantalla de "Create a new release" que ya conoces, exactamente igual que
+# antes. La diferencia: ya no adjuntas los 4 archivos a mano. Este workflow
+# los construye desde cero, en máquinas de verdad (una Windows, una Linux
+# — nada de Wine simulando Windows) y los sube solo.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión a construir (ej. 1.0.3) — solo para pruebas manuales'
+        required: true
+
+permissions:
+  contents: write   # necesario para que el token automático pueda subir archivos al release
+
+jobs:
+  set-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="v${{ github.event.inputs.version }}"
+          fi
+          # quita la "v" del inicio: v1.0.3 -> 1.0.3
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    needs: set-version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fijar la versión desde el tag del release
+        run: npm version ${{ needs.set-version.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - run: npm ci
+
+      - name: Construir e instalar el .exe directo en el release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win nsis --publish always
+
+  build-linux:
+    needs: set-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fijar la versión desde el tag del release
+        run: npm version ${{ needs.set-version.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - run: npm ci
+
+      - name: Construir e instalar el AppImage directo en el release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --linux AppImage --publish always
