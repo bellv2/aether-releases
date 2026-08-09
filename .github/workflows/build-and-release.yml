@@ -54,7 +54,7 @@ jobs:
         run: npx electron-builder --win nsis --publish always
 
   build-linux:
-    needs: set-version
+    needs: [set-version, build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
