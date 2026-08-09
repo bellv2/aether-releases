@@ -1,6 +1,6 @@
 {
   "name": "aether",
-  "version": "1.0.2",
+  "version": "1.0.6",
   "description": "AETHER — Sistema Académico",
   "main": "main.js",
   "author": "Dante",
@@ -42,7 +42,7 @@
       ],
       "category": "Education",
       "icon": "build/icon.png",
-      "artifactName": "AETHER-${version}-linux.AppImage"
+      "artifactName": "AETHER-linux.AppImage"
     },
     "win": {
       "target": [
