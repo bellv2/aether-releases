@@ -1485,8 +1485,20 @@ body.dblive .vinyl-spin{animation-play-state:running}
         : '<div class="p"><span class="edge"></span><span class="sweep"></span><div class="ph"><h3>Última clase procesada</h3></div><div class="pc">'+
           emptyBox('No hay ninguna clase procesada para '+CURSO+' todavía.')+'</div></div>';
 
-      if(rc) rc.innerHTML = '<div class="p"><span class="edge"></span><span class="sweep"></span><div class="ph"><h3>Archivos de este curso</h3></div><div class="pc">'+
-        emptyBox('Nada indexado todavía para esta materia. Los PDFs y presentaciones no se leen automáticamente en esta versión.')+'</div></div>';
+      var files = cid ? await DB.run(
+        'SELECT filename, content_type, drive_link, found_in, size, synced_at FROM canvas_files WHERE course_id=? ORDER BY synced_at DESC',
+        [cid]) : [];
+
+      if(rc) rc.innerHTML = '<div class="p"><span class="edge"></span><span class="sweep"></span><div class="ph"><h3>Archivos de este curso</h3><span class="r">'+files.length+'</span></div><div class="pc">'+
+        (files.length ? files.map(function(f){
+          var esc = function(t){ return String(t==null?'':t).replace(/[<>&]/g, function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]}); };
+          var kb = f.size ? Math.round(f.size/1024).toLocaleString('es-MX')+' KB' : '';
+          return '<div class="crow"><div class="cb"><b>'+esc(f.filename)+'</b>'+
+            '<span>'+esc(f.found_in||'origen sin registrar')+(kb?' · '+kb:'')+'</span></div>'+
+            (f.drive_link ? '<a class="tag ok" href="'+esc(f.drive_link)+'" target="_blank" rel="noopener" style="text-decoration:none">abrir</a>' : '')+
+            '</div>';
+        }).join('') : emptyBox('Nada indexado todavía para esta materia. Se llena solo en cuanto el sync de contenido encuentre archivos reales en Canvas.'))+
+        '</div></div>';
     }catch(e){
       console.warn('no se pudo cargar la pestaña de clases:', e.message);
     }
