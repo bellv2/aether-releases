@@ -14,6 +14,17 @@ let server;
 let serverPort = 0;
 let mainWindow = null;
 
+// Puerto fijo a propósito, no aleatorio. Con listen(0, ...) el sistema
+// operativo asigna un puerto distinto cada vez que se abre la app —
+// y como localStorage está ligado a la dirección exacta (127.0.0.1:PUERTO),
+// un puerto distinto es, para el navegador embebido, un origen completamente
+// nuevo y vacío. Eso es lo que borraba todo en cada reinicio: no era un
+// bug de guardado, era que cada sesión vivía en una dirección diferente.
+// Una lista corta de puertos fijos de respaldo cubre el caso raro de que
+// el primero ya esté ocupado, sin volver a caer en un puerto verdaderamente
+// aleatorio.
+const PREFERRED_PORTS = [47821, 47822, 47823, 47824];
+
 function startServer() {
   return new Promise((resolve, reject) => {
     const htmlPath = path.join(__dirname, 'app', 'aether.html');
@@ -28,11 +39,24 @@ function startServer() {
         res.end(data);
       });
     });
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      serverPort = server.address().port;
-      resolve(serverPort);
-    });
+
+    let attempt = 0;
+    function tryNextPort() {
+      if (attempt >= PREFERRED_PORTS.length) {
+        reject(new Error('Ninguno de los puertos fijos estaba disponible'));
+        return;
+      }
+      const port = PREFERRED_PORTS[attempt++];
+      server.once('error', (err) => {
+        if (err.code === 'EADDRINUSE') { tryNextPort(); }
+        else { reject(err); }
+      });
+      server.listen(port, '127.0.0.1', () => {
+        serverPort = port;
+        resolve(port);
+      });
+    }
+    tryNextPort();
   });
 }
 
