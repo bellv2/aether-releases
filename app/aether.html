@@ -1536,8 +1536,9 @@ body.dblive .vinyl-spin{animation-play-state:running}
 
 
   // manual
-  var man=[['Quiz sorpresa — derivadas direccionales','Cálculo en Varias Variables','14 ago'],
-           ['Cambio de salón a B-204','Razonamiento Algorítmico','permanente']];
+  // Arranca vacío a propósito. Antes traía dos entradas de ejemplo que se
+  // mostraban como si fueran capturas tuyas reales — se llena solo desde la base.
+  var man=[];
   function drawMan(){
     var h=document.getElementById('mlist'); h.innerHTML='';
     if(!man.length){h.innerHTML='<div style="text-align:center;padding:26px;color:var(--ink-3);font-size:11px">Nada capturado aún.</div>';return}
@@ -1610,16 +1611,11 @@ body.dblive .vinyl-spin{animation-play-state:running}
 
 
   // ══════ MOTION: system ticker ══════
-  var events=[
-    'indexando clase12_macro.m4a…',
-    '22 flashcards generadas · Macro',
-    'temario_contable v2 · 4 cambios detectados',
-    'grafo actualizado · 3 nuevas aristas',
-    'duplicado detectado · apuntes_macro_cap4',
-    'sincronizado con Canvas · 1,284 docs',
-    'confianza recalculada · parcial micro 85%',
-    'bloque de estudio agendado · 18:00'
-  ], ei=0, tt=document.getElementById('tickTxt');
+  // El ticker antes recitaba ocho eventos inventados ("1,284 docs
+  // sincronizados", "22 flashcards generadas") que nunca ocurrieron.
+  // Ahora arranca vacío y se llena con hechos reales de la base;
+  // si no hay nada real que decir, no dice nada.
+  var events=[], ei=0, tt=document.getElementById('tickTxt');
   if(tt) setInterval(function(){
     ei=(ei+1)%events.length;
     tt.style.animation='none'; void tt.offsetWidth;
@@ -1868,7 +1864,11 @@ body.dblive .vinyl-spin{animation-play-state:running}
                 (a.type==='examen'?'hot':'n'), a.source||'base de datos', String(a.confidence||90)];
       });
       drawWork(); drawWorkload();
-      var man = await DB.run('SELECT title, course_id, due_at FROM assignments WHERE is_manual=1 ORDER BY id DESC LIMIT 20');
+      // sin `var` a propósito: con `var` esto creaba una variable local nueva
+      // y el `man` global (el que drawMan() realmente lee) nunca se actualizaba
+      var manRows = await DB.run('SELECT title, course_id, due_at FROM assignments WHERE is_manual=1 ORDER BY id DESC LIMIT 20');
+      man = manRows.map(function(m){ return [m.title, m.course_id||'sin materia', m.due_at||'sin fecha']; });
+      drawMan();
       var sess = await DB.run('SELECT * FROM study_sessions ORDER BY started_at DESC LIMIT 50');
       if(sess.length){
         sessions = sess.map(function(s){ return {c:'', ms:Number(s.duration_ms), at:new Date(s.started_at)}; });
@@ -3318,29 +3318,122 @@ body.dblive .vinyl-spin{animation-play-state:running}
   }
   drawWorkload();
 
-  // ══════ BITÁCORA ══════
-  var TL=[
-    ['now','Construyendo grafo de conocimiento','Conectando 14 conceptos nuevos de Macro con lo que ya existe.','proceso en curso','ahora'],
-    ['done','22 flashcards generadas','De la clase 12 de Macroeconomía, marcadas por énfasis verbal del profesor.','clase12_macro.m4a','hace 4 min'],
-    ['done','Transcripción completada','1 h 48 min de audio convertidos a texto con timestamps.','clase12_macro.m4a','hace 9 min'],
-    ['done','Cambio detectado en temario','Proceso Contable v2: 4 diferencias frente a la versión anterior.','temario_contable_v2.pdf','hace 2 h'],
-    ['done','Duplicado identificado','apuntes_macro_cap4.pdf es 97% idéntico a un archivo ya indexado.','apuntes_macro_cap4.pdf','hace 2 h'],
-    ['done','Sincronización con Canvas','1,284 documentos revisados, 3 tareas nuevas encontradas.','Canvas API','hace 3 h'],
-    ['done','Fecha extraída con duda','“Parcial 1 — 15 de octubre” leído de un escaneo borroso, 85% de confianza. Pendiente de que lo confirmes.','temario_micro_aplicada.pdf p.3','ayer']
-  ];
-  function drawTimeline(){
-    var h=document.getElementById('tlist'); if(!h)return;
-    var live=[];
-    man.forEach(function(m){
-      live.push(['done','Capturado a mano: '+m[0], m[1]+' · lo registraste tú, sin documento de por medio','entrada manual','tú']);
-    });
-    sessions.forEach(function(x){
-      live.push(['done','Sesión de estudio registrada', Math.round(x.ms/60000)+' min en '+x.c,'cronómetro de esta app','tú']);
-    });
-    h.innerHTML=live.concat(TL).map(function(t){
-      return '<div class="tli '+t[0]+'"><div class="th"><b>'+t[1]+'</b><span class="tm2">'+t[4]+'</span></div>'+
-             '<p>'+t[2]+'</p><div class="tsrc">⟐ '+t[3]+'</div></div>';
-    }).join('');
+  // ══════ BITÁCORA — actividad real, no un guion ══════
+  // Antes esta sección mostraba siete eventos fijos escritos a mano
+  // ("22 flashcards generadas", "1,284 documentos sincronizados") que
+  // nunca ocurrieron, y se mostraban siempre, sin importar el estado real
+  // de la base. Ahora sale de lo que de verdad pasó: archivos que el sync
+  // de Canvas bajó, tareas que aparecieron, sesiones que cronometraste,
+  // y lo que capturaste tú a mano.
+  function tlAgo(iso){
+    if(!iso) return '';
+    var d = new Date(String(iso).replace(' ','T') + (String(iso).endsWith('Z')?'':'Z'));
+    if(isNaN(d)) return String(iso).slice(0,16);
+    var mins = Math.round((Date.now() - d.getTime())/60000);
+    if(mins < 1) return 'ahora';
+    if(mins < 60) return 'hace ' + mins + ' min';
+    var hrs = Math.round(mins/60);
+    if(hrs < 24) return 'hace ' + hrs + ' h';
+    var days = Math.round(hrs/24);
+    if(days === 1) return 'ayer';
+    if(days < 30) return 'hace ' + days + ' días';
+    return d.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
+  }
+  function tlEsc(t){ return String(t==null?'':t).replace(/[<>&]/g, function(c){
+    return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]; }); }
+
+  async function drawTimeline(){
+    var h = document.getElementById('tlist'); if(!h) return;
+
+    if(!DB.connected()){
+      h.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink-3);font-size:11.5px;line-height:1.7">'+
+        'Conéctate a tu base para ver tu bitácora real.</div>';
+      return;
+    }
+
+    try{
+      var entries = [];
+
+      // archivos que el sync de Canvas realmente bajó
+      var files = await DB.run(
+        'SELECT cf.filename, cf.found_in, cf.synced_at, c.name as course_name '+
+        'FROM canvas_files cf LEFT JOIN courses c ON c.id=cf.course_id '+
+        'ORDER BY cf.synced_at DESC LIMIT 60');
+      files.forEach(function(f){
+        entries.push({
+          at: f.synced_at,
+          title: 'Archivo sincronizado: ' + tlEsc(f.filename),
+          detail: tlEsc(f.course_name || 'sin materia') + ' · encontrado en ' + tlEsc(f.found_in || 'origen no registrado'),
+          src: 'Canvas → Drive'
+        });
+      });
+
+      // tareas reales que llegaron de Canvas
+      var asg = await DB.run(
+        'SELECT a.title, a.due_at, a.updated_at, a.source, c.name as course_name '+
+        'FROM assignments a LEFT JOIN courses c ON c.id=a.course_id '+
+        'WHERE a.is_manual=0 ORDER BY a.updated_at DESC LIMIT 30');
+      asg.forEach(function(a){
+        entries.push({
+          at: a.updated_at,
+          title: 'Entrega registrada: ' + tlEsc(a.title),
+          detail: tlEsc(a.course_name || 'sin materia') + (a.due_at ? ' · vence ' + String(a.due_at).slice(0,10) : ' · sin fecha'),
+          src: tlEsc(a.source || 'Canvas')
+        });
+      });
+
+      // lo que capturaste tú a mano
+      var manual = await DB.run(
+        "SELECT title, detail, source, occurred_at FROM timeline ORDER BY occurred_at DESC LIMIT 30");
+      manual.forEach(function(t){
+        entries.push({
+          at: t.occurred_at,
+          title: tlEsc(t.title),
+          detail: tlEsc(t.detail || ''),
+          src: tlEsc(t.source || 'entrada manual')
+        });
+      });
+
+      // sesiones reales del cronómetro
+      var sess = await DB.run(
+        'SELECT s.started_at, s.duration_ms, c.name as course_name '+
+        'FROM study_sessions s LEFT JOIN courses c ON c.id=s.course_id '+
+        'ORDER BY s.started_at DESC LIMIT 30');
+      sess.forEach(function(x){
+        entries.push({
+          at: x.started_at,
+          title: 'Sesión de estudio: ' + Math.round(Number(x.duration_ms||0)/60000) + ' min',
+          detail: tlEsc(x.course_name || 'sin materia asignada'),
+          src: 'cronómetro de esta app'
+        });
+      });
+
+      if(!entries.length){
+        h.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink-3);font-size:11.5px;line-height:1.7">'+
+          'Todavía no hay nada registrado. Esto se llena solo conforme el sync de Canvas baje archivos, '+
+          'lleguen entregas, o uses el cronómetro — nada aparece aquí que no haya pasado de verdad.</div>';
+        return;
+      }
+
+      entries.sort(function(a,b){
+        return new Date(String(b.at||'').replace(' ','T')) - new Date(String(a.at||'').replace(' ','T'));
+      });
+
+      h.innerHTML = entries.slice(0, 80).map(function(e){
+        return '<div class="tli done"><div class="th"><b>'+e.title+'</b>'+
+               '<span class="tm2">'+tlAgo(e.at)+'</span></div>'+
+               '<p>'+e.detail+'</p><div class="tsrc">⟐ '+e.src+'</div></div>';
+      }).join('');
+
+      // el ticker de arriba también sale de esto — hechos reales, no un guion
+      events = entries.slice(0, 8).map(function(e){
+        return e.title.replace(/<[^>]*>/g,'');
+      });
+    }catch(err){
+      console.warn('no se pudo cargar la bitácora:', err.message);
+      h.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink-3);font-size:11.5px">'+
+        'No se pudo leer tu bitácora ahora mismo.</div>';
+    }
   }
   drawTimeline(); window.__tl=drawTimeline;
 
