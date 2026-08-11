@@ -928,13 +928,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
         <div class="grid gdash" style="margin-bottom:11px">
           <div class="p"><span class="edge"></span><span class="sweep"></span>
             <div class="ph"><h3>Horario de hoy</h3></div>
-            <div class="pc" id="schedBox">
-              <div class="sch"><div class="rail2"><div class="dot f"></div><div class="ln"></div></div><div><div class="tm">09:00 – 10:30</div><b>Cálculo en Varias Variables</b><span>MAT-12221 · Salón B204</span></div></div>
-              <div class="sch"><div class="rail2"><div class="dot"></div><div class="ln"></div></div><div><div class="tm">11:30 – 13:00</div><b>Fundamentos de Finanzas</b><span>ADM-15507 · Salón A115</span></div></div>
-              <div class="sch"><div class="rail2"><div class="dot"></div><div class="ln"></div></div><div><div class="tm">14:00 – 15:30</div><b>Razonamiento Algorítmico</b><span>COM-16306 · Lab C301</span></div></div>
-              <div class="sch"><div class="rail2"><div class="dot"></div></div><div><div class="tm">18:00 – 20:00</div><b>Bloque de estudio</b><span>Proceso Contable · autoasignado</span></div></div>
-              <button class="fbtn" data-go="cal">VER CALENDARIO COMPLETO</button>
-            </div>
+            <div class="pc" id="schedBox"></div>
           </div>
 
           <div class="p livep"><span class="edge"></span><span class="sweep"></span>
@@ -1878,7 +1872,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
       renderDashboard();
       paintCourseHeader(); paintCourseTabs();
       renderVerify(); renderLectures(); renderGraph(); renderGuides(); renderCalendar();
-      renderGrades(); renderRecent(); renderDashGraph(); renderSystemStatus(); renderTemas(); renderNotas(); renderLecturas(); populateCourseSelects();
+      renderGrades(); renderRecent(); renderDashGraph(); renderSystemStatus(); renderTemas(); renderNotas(); renderLecturas(); populateCourseSelects(); renderSchedule();
       console.log('cargado desde la base:', courses.length, 'materias,', asg.length, 'tareas');
     } catch(e){
       console.warn('no se pudo cargar de la base:', e.message);
@@ -1887,7 +1881,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
   }
   if(DB.connected()) loadFromDb();
   else { renderVerify(); renderLectures(); renderGraph(); renderGuides(); renderCalendar(); paintCourseHeader(); paintCourseTabs(); runSearch();
-    renderGrades(); renderRecent(); renderDashGraph(); renderSystemStatus(); renderTemas(); renderNotas(); renderLecturas(); populateCourseSelects(); }
+    renderGrades(); renderRecent(); renderDashGraph(); renderSystemStatus(); renderTemas(); renderNotas(); renderLecturas(); populateCourseSelects(); renderSchedule(); }
 
   // ══════ PANEL PRINCIPAL — datos reales, o un vacío honesto ══════
   function daysUntil(dateStr){
@@ -3159,6 +3153,82 @@ body.dblive .vinyl-spin{animation-play-state:running}
       });
     });
   })();
+
+  // ══════ HORARIO REAL — desde class_sessions ══════
+  // Antes esta sección tenía cuatro clases escritas a mano, con salones y
+  // horas que no correspondían a tu horario real, más un "Bloque de estudio"
+  // que nadie agendó nunca. Ahora sale de la tabla class_sessions.
+  function schEsc(t){ return String(t==null?'':t).replace(/[<>&]/g, function(c){
+    return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]; }); }
+
+  function minutesNow(){
+    var n = new Date();
+    return n.getHours()*60 + n.getMinutes();
+  }
+  function toMinutes(hhmm){
+    var p = String(hhmm||'').split(':');
+    return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0);
+  }
+
+  async function renderSchedule(){
+    var host = document.getElementById('schedBox');
+    if(!host) return;
+
+    if(!DB.connected()){
+      host.innerHTML = emptyBox('Conéctate a tu base para ver tu horario.') +
+        '<button class="fbtn" data-go="cal">VER CALENDARIO COMPLETO</button>';
+      wireGoButtons(host);
+      return;
+    }
+
+    try{
+      // getDay(): 0=domingo … 6=sábado. class_sessions usa 1=lunes … 5=viernes.
+      var todayIdx = new Date().getDay();
+      var rows = await DB.run(
+        'SELECT cs.start_time, cs.end_time, cs.room, cs.course_code, c.name as course_name '+
+        'FROM class_sessions cs LEFT JOIN courses c ON c.id=cs.course_id '+
+        'WHERE cs.weekday=? ORDER BY cs.start_time', [todayIdx]);
+
+      if(!rows.length){
+        var msg = (todayIdx === 0 || todayIdx === 6)
+          ? 'Es fin de semana — no hay clases hoy.'
+          : 'No tienes clases registradas para hoy.';
+        host.innerHTML = emptyBox(msg) +
+          '<button class="fbtn" data-go="cal">VER CALENDARIO COMPLETO</button>';
+        wireGoButtons(host);
+        return;
+      }
+
+      var now = minutesNow();
+      host.innerHTML = rows.map(function(r, i){
+        var start = toMinutes(r.start_time), end = toMinutes(r.end_time);
+        var isNow = now >= start && now < end;
+        var isPast = now >= end;
+        var dotClass = isNow ? 'dot f' : 'dot';
+        var isLast = i === rows.length - 1;
+        return '<div class="sch"'+(isPast?' style="opacity:.45"':'')+'>'+
+          '<div class="rail2"><div class="'+dotClass+'"></div>'+(isLast?'':'<div class="ln"></div>')+'</div>'+
+          '<div><div class="tm">'+schEsc(r.start_time)+' – '+schEsc(r.end_time)+
+          (isNow?' · <span style="color:var(--cyan);font-weight:700">AHORA</span>':'')+'</div>'+
+          '<b>'+schEsc(r.course_name || 'sin materia')+'</b>'+
+          '<span>'+schEsc(r.course_code||'')+(r.room?' · Salón '+schEsc(r.room):'')+'</span></div></div>';
+      }).join('') + '<button class="fbtn" data-go="cal">VER CALENDARIO COMPLETO</button>';
+      wireGoButtons(host);
+    }catch(e){
+      console.warn('no se pudo cargar el horario:', e.message);
+      host.innerHTML = emptyBox('No se pudo leer tu horario. Si la tabla class_sessions todavía no existe, créala con schema-schedule.sql.') +
+        '<button class="fbtn" data-go="cal">VER CALENDARIO COMPLETO</button>';
+      wireGoButtons(host);
+    }
+  }
+
+  function wireGoButtons(scope){
+    (scope||document).querySelectorAll('[data-go]').forEach(function(b){
+      if(b.dataset.wired) return;
+      b.dataset.wired = '1';
+      b.addEventListener('click', function(){ go(b.dataset.go); });
+    });
+  }
 
   async function renderTemas(){
     var host = document.getElementById('temasBody');
