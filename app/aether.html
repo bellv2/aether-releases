@@ -228,6 +228,15 @@ body{background:#000;color:var(--ink);font-family:var(--body);font-size:14px;ove
 .qtDisp{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:.03em;color:var(--cyan);min-width:118px}
 
 
+
+/* ══════ PROGRESO POR UNIDAD ══════ */
+.mpRow{padding:11px 0;border-bottom:1px solid var(--line-2)}
+.mpRow:last-child{border-bottom:none}
+.mpTop{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:7px}
+.mpName{font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.4}
+.mpStat{font-family:var(--mono);font-size:10px;color:var(--ink-3);white-space:nowrap;letter-spacing:.02em}
+.mpStat.ok{color:var(--mint)}
+
 /* ══════ GUÍAS DE ESTUDIO ══════ */
 .gMeta{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.03em}
 .gTitle{font-size:15px;font-weight:700;letter-spacing:-.01em;display:block;margin-bottom:8px}
@@ -1127,6 +1136,7 @@ body.dblive .vinyl-spin{animation-play-state:running}
       <!-- ── GUÍAS ── -->
       <section class="view" data-v="guides">
         <div class="hero"><div><h2>Guías de estudio generadas</h2><p>Cada guía espera tu visto bueno antes de quedarse en tu biblioteca.</p></div></div>
+        <div id="moduleProgress" class="grid g3" style="margin-bottom:0"></div>
         <div id="guidesGrid" class="grid g3"></div>
         <div class="p" data-sw="1" style="margin-top:11px;border-style:dashed"><div class="pc" style="text-align:center;padding:24px">
           <b style="font-family:var(--dsp);font-size:10px;letter-spacing:.12em;color:var(--cyan);display:block;margin-bottom:5px">ARRASTRA UN PDF, AUDIO O PRESENTACIÓN</b>
@@ -2063,14 +2073,52 @@ body.dblive .vinyl-spin{animation-play-state:running}
     manual: 'la pediste tú a mano'
   };
 
+  async function renderModuleProgress(){
+    var host = document.getElementById('moduleProgress'); if(!host) return;
+    if(!DB.connected()){ host.innerHTML = ''; return; }
+    try{
+      var mods = await DB.run(
+        "SELECT m.id, m.name, m.state, m.canvas_module_id, c.name as course_name, "+
+        "(SELECT COUNT(*) FROM module_items mi WHERE mi.canvas_module_id=m.canvas_module_id AND mi.type='Assignment') as total_asg, "+
+        "(SELECT COUNT(*) FROM assignments a JOIN module_items mi2 ON mi2.content_id=a.canvas_assignment_id "+
+        "  WHERE mi2.canvas_module_id=m.canvas_module_id AND mi2.type='Assignment' AND a.status IN ('entregado','calificado')) as done_asg, "+
+        "(SELECT COUNT(*) FROM guides g WHERE g.canvas_module_id=m.canvas_module_id) as has_guide "+
+        "FROM modules m LEFT JOIN courses c ON c.id=m.course_id ORDER BY c.name, m.position");
+
+      if(!mods.length){ host.innerHTML = ''; return; }
+
+      host.innerHTML = '<div class="p" style="grid-column:1/-1;margin-bottom:14px">'+
+        '<div class="ph"><h3>Progreso por unidad</h3></div><div class="pc">'+
+        mods.map(function(m){
+          var total = Number(m.total_asg||0), done = Number(m.done_asg||0);
+          var pct = m.state === 'completed' ? 100 : (total > 0 ? Math.round(done/total*100) : (m.state === 'started' ? 40 : 0));
+          var hasGuide = Number(m.has_guide||0) > 0;
+          var statusText = hasGuide ? 'guía lista' :
+            (m.state === 'completed' ? 'completa · generando guía' :
+             total > 0 ? done+'/'+total+' tareas' : 'sin señal de progreso todavía');
+          return '<div class="mpRow">'+
+            '<div class="mpTop"><span class="mpName">'+gEsc(m.course_name||'')+' — '+gEsc(m.name)+'</span>'+
+            '<span class="mpStat'+(hasGuide?' ok':'')+'">'+statusText+'</span></div>'+
+            '<div class="pbar"><i data-w="'+pct+'" style="width:0%"></i></div></div>';
+        }).join('') + '</div></div>';
+      setTimeout(function(){
+        host.querySelectorAll('.pbar i').forEach(function(b){ b.style.width=(b.dataset.w||0)+'%'; });
+      }, 80);
+    }catch(e){
+      console.warn('no se pudo cargar el progreso de unidades:', e.message);
+      host.innerHTML = '';
+    }
+  }
+
   async function renderGuides(){
     var host = document.getElementById('guidesGrid'); if(!host) return;
+    await renderModuleProgress();
     if(!DB.connected()){ host.innerHTML = emptyBox('Conéctate a tu base para ver esto.'); return; }
     try{
       var rows = await DB.run('SELECT g.*, c.name as course_name FROM guides g LEFT JOIN courses c ON c.id=g.course_id ORDER BY created_at DESC');
       if(!rows.length){
         host.innerHTML = '<div class="p" style="grid-column:1/-1"><div class="pc">'+
-          emptyBox('Ninguna guía todavía. Se generan solas cuando una unidad se puede verificar como completa — sea porque Canvas la marcó así, o porque todas sus tareas están hechas — y hay material real de esa unidad del cual armarla.')+
+          emptyBox('Ninguna guía todavía. Se generan solas cuando una unidad se puede verificar como completa — sea porque Canvas la marcó así, o porque todas sus tareas están hechas — y hay material real de esa unidad del cual armarla. Arriba puedes ver el progreso real de cada unidad mientras tanto.')+
           '</div></div>';
         return;
       }
